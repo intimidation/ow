@@ -970,24 +970,22 @@
     </div>
 
     <div id="app-container">
-        <header>
-            <div id="p1-panel" class="player-panel" style="text-align: left;">
+        <header style="padding: 4px 10px; gap: 8px;">
+            <div id="p1-panel" class="player-panel" style="text-align: left; font-size: 11px;">
                 <span class="player-name" id="p1-name-display">🔵 P1</span>
-                <span class="player-stats">
+                <span class="player-stats" style="font-size: 10px;">
                     Wits: <span id="p1-wits" class="wits-badge">5</span>
                     <button class="wit-add-btn" onclick="addWitAction('P1')">+</button>
-                    <br>Income: <span id="p1-income">5</span>
                 </span>
             </div>
-            <div style="display:flex; flex-direction:column; gap:5px; align-items:center; flex-shrink:0;">
-                <div id="turn-banner" style="margin:0;">TURN 1 : P1</div>
+            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
+                <button id="turn-banner" style="margin:0; font-size:10px; padding:3px 8px; border-radius:6px; border:none; color:#fff; font-weight:800; text-transform:uppercase;">T1 : P1</button>
             </div>
-            <div id="p2-panel" class="player-panel" style="text-align: right; align-items: flex-end;">
+            <div id="p2-panel" class="player-panel" style="text-align: right; align-items: flex-end; font-size: 11px;">
                 <span class="player-name" id="p2-name-display">🔴 P2</span>
-                <span class="player-stats">
+                <span class="player-stats" style="font-size: 10px;">
                     <button class="wit-add-btn" onclick="addWitAction('P2')">+</button>
                     Wits: <span id="p2-wits" class="wits-badge">8</span>
-                    <br>Income: <span id="p2-income">5</span>
                 </span>
             </div>
         </header>
@@ -1101,7 +1099,7 @@
                     <button onclick="toggleBattlesHub(true)"
                         style="background:var(--accent-blue); color:#fff; border:none; border-radius:6px; padding:3px 2px; font-size:8px; font-weight:800; cursor:pointer; text-transform:uppercase; transition:all 0.15s ease; white-space:nowrap;">⚔️ Swap</button>
                     <button id="customise-btn" onclick="toggleCustomiseMode()"
-                        style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border:none; border-radius:6px; padding:3px 2px; font-size:8px; font-weight:800; cursor:pointer; text-transform:uppercase; transition:all 0.15s ease; white-space:nowrap; box-shadow:0 2px 6px rgba(245, 158, 11, 0.3);">🛠️ Edit</button>
+                        style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border:none; border-radius:6px; padding:3px 2px; font-size:8px; font-weight:800; cursor:pointer; text-transform:uppercase; transition:all 0.15s ease; white-space:nowrap; box-shadow:0 2px 6px rgba(245, 158, 11, 0.3);">🛠️ Customise</button>
                     <label
                         style="background:#272732; color:#fff; border:1px solid var(--border-color); border-radius:6px; padding:3px 2px; font-size:8px; font-weight:800; cursor:pointer; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:2px; white-space:nowrap;">
                         <input type="checkbox" id="fow-toggle" onchange="toggleFoW()" checked style="margin: 0; width:11px; height:11px;" /> FoW
@@ -3575,29 +3573,22 @@
 
             document.getElementById('p1-panel').style.color = p1C.text;
             document.getElementById('p2-panel').style.color = p2C.text;
-            let p1RaceName = gameParams.p1Race;
-            let p2RaceName = gameParams.p2Race;
-            if (gameParams.pogNerfs) {
-                const altRaces = {
-                    Scallywags: 'Elspar',
-                    Feedback: 'Blix',
-                    Adorables: 'Worp',
-                    Veggienauts: 'Rynn-Ceph'
-                };
-                p1RaceName = altRaces[gameParams.p1Race] || gameParams.p1Race;
-                p2RaceName = altRaces[gameParams.p2Race] || gameParams.p2Race;
-            }
+            const raceEmojis = { Scallywags: '🐚', Feedback: '🧠', Adorables: '🐳', Veggienauts: '🌱' };
+            const p1Emoji = raceEmojis[gameParams.p1Race] || '';
+            const p2Emoji = raceEmojis[gameParams.p2Race] || '';
 
-            document.getElementById('p1-name-display').textContent = `${p1C.emoji} P1 (${p1RaceName})`;
-            document.getElementById('p2-name-display').textContent = `${p2C.emoji} P2 (${p2RaceName})`;
+            document.getElementById('p1-name-display').textContent = `${p1C.emoji} P1 ${p1Emoji}`;
+            document.getElementById('p2-name-display').textContent = `${p2C.emoji} P2 ${p2Emoji}`;
 
             document.getElementById('p1-wits').textContent = game.wits.P1;
-            document.getElementById('p1-income').textContent = calculateIncome('P1');
+            const p1IncEl = document.getElementById('p1-income');
+            if (p1IncEl) p1IncEl.textContent = calculateIncome('P1');
             document.getElementById('p2-wits').textContent = game.wits.P2;
-            document.getElementById('p2-income').textContent = calculateIncome('P2');
+            const p2IncEl = document.getElementById('p2-income');
+            if (p2IncEl) p2IncEl.textContent = calculateIncome('P2');
 
             const ban = document.getElementById('turn-banner');
-            ban.textContent = `TURN ${game.turnNumber} : ${game.turn}`;
+            ban.textContent = `T${game.turnNumber} : ${game.turn}`;
             ban.style.backgroundColor = game.turn === 'P1' ? p1C.banner : p2C.banner;
 
             // Update landscape side stats
