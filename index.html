@@ -888,7 +888,7 @@
 <body>
 
     <div id="lobby-screen">
-        <h1>OUTWITTERS</h1>
+        <h1 id="lobby-title">OUTWITTERS</h1>
         <div class="lobby-group">
             <label>Battlefield Map</label>
             <select id="map-select">
@@ -2220,7 +2220,11 @@
         function updatePogModeUI() {
             const pogActive = document.getElementById('pog-nerfs-toggle') && document.getElementById('pog-nerfs-toggle').checked;
 
-            // 1. Update map dropdown names
+            // 0. Update lobby title header
+            const lobbyTitle = document.getElementById('lobby-title');
+            if (lobbyTitle) {
+                lobbyTitle.textContent = pogActive ? 'PRICE OF GLORY' : 'OUTWITTERS';
+            }
             const mapSelect = document.getElementById('map-select');
             if (mapSelect) {
                 Array.from(mapSelect.options).forEach(opt => {
