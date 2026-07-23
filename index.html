@@ -1878,6 +1878,8 @@
             const btn = document.getElementById('customise-btn');
             const sideBtn = document.getElementById('side-customise-btn');
             const panel = document.getElementById('customise-panel');
+            const controlPanel = document.getElementById('control-panel');
+            const mainHeader = document.querySelector('header');
 
             if (isCustomizing) {
                 if (btn) {
@@ -1889,6 +1891,8 @@
                     sideBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
                 }
                 if (panel) panel.style.display = 'flex';
+                if (controlPanel) controlPanel.style.display = 'none';
+                if (mainHeader) mainHeader.style.display = 'none';
                 game.pendingSpawnType = null;
                 selectedUnit = null;
                 clearHighlights();
@@ -1902,6 +1906,8 @@
                     sideBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
                 }
                 if (panel) panel.style.display = 'none';
+                if (controlPanel) controlPanel.style.display = '';
+                if (mainHeader) mainHeader.style.display = '';
                 currentTurnStartSnapshot = createSnapshot();
                 selectedUnit = null;
                 clearHighlights();
@@ -2293,6 +2299,10 @@
                 if (sideBtn) { sideBtn.textContent = '🛠️ Customise'; sideBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)'; }
                 const panel = document.getElementById('customise-panel');
                 if (panel) panel.style.display = 'none';
+                const controlPanel = document.getElementById('control-panel');
+                if (controlPanel) controlPanel.style.display = '';
+                const mainHeader = document.querySelector('header');
+                if (mainHeader) mainHeader.style.display = '';
             }
             document.getElementById('app-container').style.display = 'none';
             document.getElementById('lobby-screen').style.display = 'flex';
