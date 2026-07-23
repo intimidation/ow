@@ -3201,10 +3201,8 @@
                         if (rules) {
                             triggerHaptic(25);
                             if (u && u.type === actualType && u.player === customiseTeam) {
-                                // Tapping same unit type for same team heals it up to maxHp + 1 (Medic overheal cap)
-                                if (u.hp < u.maxHp + 1) {
-                                    u.hp = u.maxHp + 1;
-                                }
+                                // Tapping the same unit type for the same team deletes the unit
+                                game.units = game.units.filter(x => x !== u);
                             } else {
                                 game.units = game.units.filter(x => !(x.q === hex.q && x.r === hex.r));
                                 let maxHp = rules.maxHp;
