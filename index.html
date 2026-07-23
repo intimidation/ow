@@ -2884,7 +2884,7 @@
             restoreSnapshot(currentTurnStartSnapshot);
             for (let cmd of actionQueue) executeCommand(cmd);
 
-            selectedUnit = null; clearHighlights(); updateUI(); draw(); saveCurrentMatch();
+            selectedUnit = null; clearHighlights(); updateUI(); draw(); evaluateWin(); saveCurrentMatch();
         }
 
         function redoMoveAction() {
@@ -2910,7 +2910,7 @@
             actionQueue = [];
             redoQueue = [...turnActions].reverse();
 
-            selectedUnit = null; clearHighlights(); updateUI(); draw(); saveCurrentMatch();
+            selectedUnit = null; clearHighlights(); updateUI(); draw(); evaluateWin(); saveCurrentMatch();
         }
 
         function undoTurnAction() {
@@ -2931,7 +2931,7 @@
             actionQueue = [];
             redoQueue = [...prevTurnActions].reverse();
 
-            selectedUnit = null; clearHighlights(); updateUI(); draw(); saveCurrentMatch();
+            selectedUnit = null; clearHighlights(); updateUI(); draw(); evaluateWin(); saveCurrentMatch();
         }
 
         function redoTurnAction() {
@@ -2954,7 +2954,7 @@
             actionQueue = [];
             redoQueue = [...nextTurnActions].reverse();
 
-            selectedUnit = null; clearHighlights(); updateUI(); draw(); saveCurrentMatch();
+            selectedUnit = null; clearHighlights(); updateUI(); draw(); evaluateWin(); saveCurrentMatch();
         }
 
         function hexToPixel(q, r) { return { x: hexRadius * 3 / 2 * q + offsetX, y: hexRadius * Math.sqrt(3) * (r + q / 2) + offsetY }; }
@@ -3561,6 +3561,9 @@
                         navigator.vibrate([100, 50, 100, 50, 200]);
                     } catch (e) { }
                 }
+            } else {
+                const overlay = document.getElementById('notification-overlay');
+                if (overlay) overlay.style.display = 'none';
             }
         }
 
