@@ -835,7 +835,8 @@
             #customise-panel {
                 position: relative !important;
                 border-bottom: none !important;
-                border-left: 1px solid var(--border-color) !important;
+                border-right: 1px solid var(--border-color) !important;
+                border-left: none !important;
                 width: 290px !important;
                 height: 100% !important;
                 overflow-y: auto !important;
@@ -1010,61 +1011,61 @@
             </div>
         </header>
 
-        <!-- Customise / Sandbox Control Panel -->
-        <div id="customise-panel" style="display: none; background: rgba(24, 24, 32, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); padding: 8px 12px; flex-shrink: 0; z-index: 20; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span style="font-weight: 800; font-size: 11px; color: #f59e0b; letter-spacing: 1px; text-transform: uppercase;">🛠️ Customise Match</span>
-                    <span style="font-size: 9px; color: var(--text-secondary);">(Tap hex to edit)</span>
-                </div>
-                <div style="display: flex; gap: 4px;">
-                    <button id="share-puzzle-btn" onclick="sharePuzzleChallenge()" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(59,130,246,0.3); transition: all 0.15s ease;">🔗 Share Link</button>
-                    <button id="exit-customise-btn" onclick="toggleCustomiseMode()" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.3);">Exit ✕</button>
-                </div>
-            </div>
-
-            <!-- Wits Adjustment Bar -->
-            <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span id="customise-p1-label" style="font-weight: 800; font-size: 11px; color: #3b82f6;">🔵 P1 Wits:</span>
-                    <button onclick="adjustWit('P1', -1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">-</button>
-                    <span id="customise-p1-wits" style="font-weight: 800; font-size: 14px; color: var(--accent-gold); min-width: 20px; text-align: center;">5</span>
-                    <button onclick="adjustWit('P1', 1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
-                </div>
-                <div style="display: flex; align-items: center; gap: 4px;">
-                    <span id="customise-p2-label" style="font-weight: 800; font-size: 11px; color: #ef4444;">🔴 P2 Wits:</span>
-                    <button onclick="adjustWit('P2', -1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">-</button>
-                    <span id="customise-p2-wits" style="font-weight: 800; font-size: 14px; color: var(--accent-gold); min-width: 20px; text-align: center;">8</span>
-                    <button onclick="adjustWit('P2', 1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
-                </div>
-            </div>
-
-            <!-- Unit Placement Palette -->
-            <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div id="game-body">
+            <!-- Customise / Sandbox Control Panel -->
+            <div id="customise-panel" style="display: none; background: rgba(24, 24, 32, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border-color); padding: 8px 12px; flex-shrink: 0; z-index: 20; flex-direction: column; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Place Unit For:</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-weight: 800; font-size: 11px; color: #f59e0b; letter-spacing: 1px; text-transform: uppercase;">🛠️ Customise Match</span>
+                        <span style="font-size: 9px; color: var(--text-secondary);">(Tap hex to edit)</span>
+                    </div>
                     <div style="display: flex; gap: 4px;">
-                        <button id="customise-team-p1" onclick="setCustomiseTeam('P1')" style="padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; cursor: pointer;">🔵 P1 Team</button>
-                        <button id="customise-team-p2" onclick="setCustomiseTeam('P2')" style="padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid var(--border-color); background: #1a1a22; color: var(--text-secondary); cursor: pointer;">🔴 P2 Team</button>
+                        <button id="share-puzzle-btn" onclick="sharePuzzleChallenge()" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(59,130,246,0.3); transition: all 0.15s ease;">🔗 Share Link</button>
+                        <button id="exit-customise-btn" onclick="toggleCustomiseMode()" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.3);">Exit ✕</button>
                     </div>
                 </div>
-                <div class="customise-palette" style="display: flex; flex-wrap: wrap; gap: 4px;">
-                    <button class="unit-btn c-unit-btn active" id="c-btn-Runner" onclick="setCustomiseTool('Runner')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Runner">🏃</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Soldier" onclick="setCustomiseTool('Soldier')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Soldier">⚔️</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Medic" onclick="setCustomiseTool('Medic')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Medic"><span style="color:#ef4444;">✚</span></button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Sniper" onclick="setCustomiseTool('Sniper')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Sniper">🏹</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Heavy" onclick="setCustomiseTool('Heavy')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Heavy">💪</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Special" onclick="setCustomiseTool('Special')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Race Special"><span id="c-special-emoji">⭐</span></button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-BombshellSieged" onclick="setCustomiseTool('BombshellSieged')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Sieged Bombshell">🧨</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-BrambleSieged" onclick="setCustomiseTool('BrambleSieged')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Rooted Bramble">🌳</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Thorn" onclick="setCustomiseTool('Thorn')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Thorn">🌵</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Heal" onclick="setCustomiseTool('Heal')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #4ade80;" title="Heal / +1 HP">❤️</button>
-                    <button class="unit-btn c-unit-btn" id="c-btn-Delete" onclick="setCustomiseTool('Delete')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); color: #f87171;" title="Delete Unit">🗑️</button>
+
+                <!-- Wits Adjustment Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span id="customise-p1-label" style="font-weight: 800; font-size: 11px; color: #3b82f6;">🔵 P1 Wits:</span>
+                        <button onclick="adjustWit('P1', -1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">-</button>
+                        <span id="customise-p1-wits" style="font-weight: 800; font-size: 14px; color: var(--accent-gold); min-width: 20px; text-align: center;">5</span>
+                        <button onclick="adjustWit('P1', 1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <span id="customise-p2-label" style="font-weight: 800; font-size: 11px; color: #ef4444;">🔴 P2 Wits:</span>
+                        <button onclick="adjustWit('P2', -1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">-</button>
+                        <span id="customise-p2-wits" style="font-weight: 800; font-size: 14px; color: var(--accent-gold); min-width: 20px; text-align: center;">8</span>
+                        <button onclick="adjustWit('P2', 1)" style="background: #272732; color: #fff; border: 1px solid var(--border-color); border-radius: 4px; width: 22px; height: 22px; font-weight: 800; font-size: 12px; cursor: pointer;">+</button>
+                    </div>
+                </div>
+
+                <!-- Unit Placement Palette -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Place Unit For:</span>
+                        <div style="display: flex; gap: 4px;">
+                            <button id="customise-team-p1" onclick="setCustomiseTeam('P1')" style="padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; cursor: pointer;">🔵 P1 Team</button>
+                            <button id="customise-team-p2" onclick="setCustomiseTeam('P2')" style="padding: 2px 8px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid var(--border-color); background: #1a1a22; color: var(--text-secondary); cursor: pointer;">🔴 P2 Team</button>
+                        </div>
+                    </div>
+                    <div class="customise-palette" style="display: flex; flex-wrap: wrap; gap: 4px;">
+                        <button class="unit-btn c-unit-btn active" id="c-btn-Runner" onclick="setCustomiseTool('Runner')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Runner">🏃</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Soldier" onclick="setCustomiseTool('Soldier')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Soldier">⚔️</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Medic" onclick="setCustomiseTool('Medic')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Medic"><span style="color:#ef4444;">✚</span></button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Sniper" onclick="setCustomiseTool('Sniper')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Sniper">🏹</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Heavy" onclick="setCustomiseTool('Heavy')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Heavy">💪</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Special" onclick="setCustomiseTool('Special')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Race Special"><span id="c-special-emoji">⭐</span></button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-BombshellSieged" onclick="setCustomiseTool('BombshellSieged')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Sieged Bombshell">🧨</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-BrambleSieged" onclick="setCustomiseTool('BrambleSieged')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Rooted Bramble">🌳</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Thorn" onclick="setCustomiseTool('Thorn')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px;" title="Thorn">🌵</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Heal" onclick="setCustomiseTool('Heal')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px; background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #4ade80;" title="Heal / +1 HP">❤️</button>
+                        <button class="unit-btn c-unit-btn" id="c-btn-Delete" onclick="setCustomiseTool('Delete')" style="flex:1; min-width:28px; padding: 4px 0; font-size: 11px; background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.4); color: #f87171;" title="Delete Unit">🗑️</button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div id="game-body">
             <div id="canvas-wrapper">
                 <canvas id="game-canvas" width="420" height="460"></canvas>
                 <div id="notification-overlay">
@@ -1907,6 +1908,8 @@
                 saveCurrentMatch();
             }
             updateUI();
+            resizeCanvasOnly();
+            centerGrid();
             draw();
         }
 
