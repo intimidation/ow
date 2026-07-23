@@ -2158,6 +2158,10 @@
             triggerHaptic(20);
             if (!currentMatchId || !game) return;
 
+        function sharePuzzleChallenge() {
+            triggerHaptic(20);
+            if (!currentMatchId || !game) return;
+
             const MAP_KEYS = ['SweetTooth', 'SharkfoodIsland', 'Foundry', 'SkullDuggery', 'Glitch'];
             const RACE_KEYS = ['Scallywags', 'Feedback', 'Adorables', 'Veggienauts'];
             const TYPE_CODES = ['Runner', 'Soldier', 'Medic', 'Sniper', 'Heavy', 'Bombshell', 'Scrambler', 'Mobi', 'Bramble', 'BombshellSieged', 'BrambleSieged', 'Thorn'];
@@ -2168,15 +2172,18 @@
 
             let gridList = grid || (mapConfig ? mapConfig.geomGrid : []);
 
-            let uPacked = game.units.map(u => {
-                let typeIdx = TYPE_CODES.indexOf(u.type); if (typeIdx === -1) typeIdx = 0;
-                let pIdx = u.player === 'P1' ? 0 : 1;
-                let hexIdx = gridList.findIndex(g => g.q === u.q && g.r === u.r); if (hexIdx === -1) hexIdx = 0;
-                let rules = unitRules[u.type];
-                let defaultHp = rules ? rules.maxHp : 5;
-                if (u.type === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
-                return u.hp !== defaultHp ? [typeIdx, pIdx, hexIdx, u.hp] : [typeIdx, pIdx, hexIdx];
-            });
+            // Bit-packed array of bytes
+            // Byte 0: Map (3 bits), P1 Race (2 bits), P2 Race (2 bits), PogNerf (1 bit)
+            // Byte 1: Turn (1 bit: 0=P1,1=P2), TurnNum (7 bits: 0-127)
+            // Byte 2: P1 Wits (7 bits), Base HP custom flag (1 bit)
+            // Byte 3: P2 Wits (7 bits), Bonus custom flag (1 bit)
+            // Byte 4: P1 Base HP (4 bits), P2 Base HP (4 bits) [Only if Base HP custom flag set]
+
+            let bytes = [];
+            let header0 = ((mapIdx & 7) << 5) | ((r1Idx & 3) << 3) | ((r2Idx & 3) << 1) | (gameParams.pogNerfs ? 1 : 0);
+            let header1 = ((game.turn === 'P1' ? 0 : 1) << 7) | (game.turnNumber & 127);
+
+            let hasCustomBaseHp = (game.baseHp.P1 !== 5 || game.baseHp.P2 !== 5);
 
             let activeBonus = [];
             if (game.bonusSpaces) {
@@ -2188,22 +2195,49 @@
                     }
                 });
             }
+            let hasBonus = activeBonus.length > 0;
 
-            const compactPuzzle = {
-                m: mapIdx,
-                r: [r1Idx, r2Idx],
-                p: gameParams.pogNerfs ? 1 : 0,
-                t: game.turn === 'P1' ? 1 : 2,
-                n: game.turnNumber,
-                w: [game.wits.P1, game.wits.P2],
-                b: [game.baseHp.P1, game.baseHp.P2],
-                u: uPacked
-            };
-            if (activeBonus.length > 0) compactPuzzle.k = activeBonus;
+            let header2 = ((game.wits.P1 & 127) << 1) | (hasCustomBaseHp ? 1 : 0);
+            let header3 = ((game.wits.P2 & 127) << 1) | (hasBonus ? 1 : 0);
+
+            bytes.push(header0, header1, header2, header3);
+
+            if (hasCustomBaseHp) {
+                bytes.push(((game.baseHp.P1 & 15) << 4) | (game.baseHp.P2 & 15));
+            }
+
+            if (hasBonus) {
+                bytes.push(activeBonus.length & 255);
+                activeBonus.forEach(b => {
+                    bytes.push(((b[0] & 127) << 1) | (b[1] & 1));
+                });
+            }
+
+            // Encode units:
+            // Byte 0: TypeIdx (4 bits), PlayerIdx (1 bit: 0=P1,1=P2), CustomHP flag (1 bit), Unused (2 bits)
+            // Byte 1: HexIdx (8 bits)
+            // Byte 2 (Optional): HP (8 bits)
+            bytes.push(game.units.length & 255);
+            game.units.forEach(u => {
+                let typeIdx = TYPE_CODES.indexOf(u.type); if (typeIdx === -1) typeIdx = 0;
+                let pIdx = u.player === 'P1' ? 0 : 1;
+                let hexIdx = gridList.findIndex(g => g.q === u.q && g.r === u.r); if (hexIdx === -1) hexIdx = 0;
+                let rules = unitRules[u.type];
+                let defaultHp = rules ? rules.maxHp : 5;
+                if (u.type === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
+                let isCustomHp = u.hp !== defaultHp;
+
+                let uByte0 = ((typeIdx & 15) << 4) | ((pIdx & 1) << 3) | (isCustomHp ? 4 : 0);
+                bytes.push(uByte0, hexIdx & 255);
+                if (isCustomHp) {
+                    bytes.push(u.hp & 255);
+                }
+            });
 
             try {
-                const jsonStr = JSON.stringify(compactPuzzle);
-                const encoded = btoa(jsonStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+                // Convert byte array to Base64
+                let binStr = String.fromCharCode.apply(null, bytes);
+                let encoded = btoa(binStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
                 const shareUrl = window.location.origin + window.location.pathname + '?p=' + encoded;
 
                 const btn = document.getElementById('share-puzzle-btn');
@@ -2240,175 +2274,292 @@
             if (!puzzleEncoded) return false;
 
             try {
-                let data;
+                const MAP_KEYS = ['SweetTooth', 'SharkfoodIsland', 'Foundry', 'SkullDuggery', 'Glitch'];
+                const RACE_KEYS = ['Scallywags', 'Feedback', 'Adorables', 'Veggienauts'];
+                const TYPE_CODES = ['Runner', 'Soldier', 'Medic', 'Sniper', 'Heavy', 'Bombshell', 'Scrambler', 'Mobi', 'Bramble', 'BombshellSieged', 'BrambleSieged', 'Thorn'];
+
+                currentMatchId = 'puzzle_' + Date.now();
+
+                let isBitPacked = false;
+                let data = null;
+
                 if (pCompact) {
                     let base64 = pCompact.replace(/-/g, '+').replace(/_/g, '/');
                     while (base64.length % 4) base64 += '=';
-                    const jsonStr = atob(base64);
-                    data = JSON.parse(jsonStr);
+                    const binStr = atob(base64);
+
+                    // Check if JSON or bit-packed binary
+                    if (binStr.trim().startsWith('{')) {
+                        data = JSON.parse(binStr);
+                    } else {
+                        isBitPacked = true;
+                        let bytes = [];
+                        for (let i = 0; i < binStr.length; i++) {
+                            bytes.push(binStr.charCodeAt(i));
+                        }
+
+                        let header0 = bytes[0];
+                        let header1 = bytes[1];
+                        let header2 = bytes[2];
+                        let header3 = bytes[3];
+
+                        let mapIdx = (header0 >> 5) & 7;
+                        let r1Idx = (header0 >> 3) & 3;
+                        let r2Idx = (header0 >> 1) & 3;
+                        let pogNerfs = (header0 & 1) === 1;
+
+                        let turn = ((header1 >> 7) & 1) === 0 ? 'P1' : 'P2';
+                        let turnNumber = header1 & 127;
+
+                        let witsP1 = (header2 >> 1) & 127;
+                        let hasCustomBaseHp = (header2 & 1) === 1;
+
+                        let witsP2 = (header3 >> 1) & 127;
+                        let hasBonus = (header3 & 1) === 1;
+
+                        let idx = 4;
+                        let baseHpP1 = 5, baseHpP2 = 5;
+                        if (hasCustomBaseHp) {
+                            baseHpP1 = (bytes[idx] >> 4) & 15;
+                            baseHpP2 = bytes[idx] & 15;
+                            idx++;
+                        }
+
+                        let bonusObj = {};
+                        if (hasBonus) {
+                            let bLen = bytes[idx++];
+                            for (let i = 0; i < bLen; i++) {
+                                let bByte = bytes[idx++];
+                                let hexIndex = (bByte >> 1) & 127;
+                                let ownerPlayer = (bByte & 1) === 0 ? 'P1' : 'P2';
+                                // Resolved after geometry parsing
+                                bonusObj[i] = { hexIdx: hexIndex, owner: ownerPlayer };
+                            }
+                        }
+
+                        gameParams = {
+                            mapId: MAP_KEYS[mapIdx] || 'SweetTooth',
+                            p1Race: RACE_KEYS[r1Idx] || 'Scallywags',
+                            p2Race: RACE_KEYS[r2Idx] || 'Scallywags',
+                            p1ColorKey: 'blue',
+                            p2ColorKey: 'red',
+                            sideSwap: false,
+                            pogNerfs: pogNerfs
+                        };
+
+                        parseMapGeom();
+                        grid = mapConfig.geomGrid;
+
+                        // Resolve bonus space keys with grid
+                        let finalBonusObj = {};
+                        Object.values(bonusObj).forEach(b => {
+                            let hexObj = grid[b.hexIdx];
+                            if (hexObj) {
+                                finalBonusObj[`${hexObj.q},${hexObj.r}`] = { owner: b.owner };
+                            }
+                        });
+
+                        let uLen = bytes[idx++];
+                        let loadedUnits = [];
+                        for (let i = 0; i < uLen; i++) {
+                            let uByte0 = bytes[idx++];
+                            let hexIdx = bytes[idx++];
+                            let typeIdx = (uByte0 >> 4) & 15;
+                            let playerStr = ((uByte0 >> 3) & 1) === 0 ? 'P1' : 'P2';
+                            let isCustomHp = (uByte0 & 4) === 4;
+                            let typeStr = TYPE_CODES[typeIdx] || 'Runner';
+                            let rules = unitRules[typeStr];
+                            let defaultHp = rules ? rules.maxHp : 5;
+                            if (typeStr === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
+                            let hpVal = defaultHp;
+                            if (isCustomHp) {
+                                hpVal = bytes[idx++];
+                            }
+                            let hexObj = grid[hexIdx] || { q: 0, r: 0 };
+                            loadedUnits.push({
+                                id: 'unit_' + Math.random(),
+                                type: typeStr,
+                                player: playerStr,
+                                q: hexObj.q,
+                                r: hexObj.r,
+                                hp: hpVal,
+                                maxHp: defaultHp,
+                                moveRange: rules ? rules.moveRange : 2,
+                                attackRange: rules ? rules.attackRange : 1,
+                                damage: rules ? (rules.damage || 0) : 0,
+                                heal: rules ? (rules.heal || 0) : 0,
+                                moved: false,
+                                attacked: false
+                            });
+                        }
+
+                        game = {
+                            turn: turn,
+                            turnNumber: turnNumber,
+                            wits: { P1: witsP1, P2: witsP2 },
+                            baseHp: { P1: baseHpP1, P2: baseHpP2 },
+                            units: loadedUnits,
+                            bonusSpaces: finalBonusObj,
+                            spawnsUsedThisTurn: [],
+                            pendingSpawnType: null
+                        };
+                    }
                 } else {
                     const jsonStr = decodeURIComponent(atob(puzzleEncoded));
                     data = JSON.parse(jsonStr);
                 }
 
-                currentMatchId = 'puzzle_' + Date.now();
+                if (!isBitPacked) {
+                    if (data.m !== undefined && typeof data.m === 'number') {
+                        let mapIdStr = MAP_KEYS[data.m] || 'SweetTooth';
+                        let r1Str = RACE_KEYS[data.r[0]] || 'Scallywags';
+                        let r2Str = RACE_KEYS[data.r[1]] || 'Scallywags';
 
-                const MAP_KEYS = ['SweetTooth', 'SharkfoodIsland', 'Foundry', 'SkullDuggery', 'Glitch'];
-                const RACE_KEYS = ['Scallywags', 'Feedback', 'Adorables', 'Veggienauts'];
-                const TYPE_CODES = ['Runner', 'Soldier', 'Medic', 'Sniper', 'Heavy', 'Bombshell', 'Scrambler', 'Mobi', 'Bramble', 'BombshellSieged', 'BrambleSieged', 'Thorn'];
-
-                if (data.m !== undefined && typeof data.m === 'number') {
-                    // Ultra-compact 2-char hex index format
-                    let mapIdStr = MAP_KEYS[data.m] || 'SweetTooth';
-                    let r1Str = RACE_KEYS[data.r[0]] || 'Scallywags';
-                    let r2Str = RACE_KEYS[data.r[1]] || 'Scallywags';
-
-                    gameParams = {
-                        mapId: mapIdStr,
-                        p1Race: r1Str,
-                        p2Race: r2Str,
-                        p1ColorKey: 'blue',
-                        p2ColorKey: 'red',
-                        sideSwap: false,
-                        pogNerfs: !!data.p
-                    };
-
-                    parseMapGeom();
-                    grid = mapConfig.geomGrid;
-
-                    let loadedUnits = (data.u || []).map(arr => {
-                        let typeStr = TYPE_CODES[arr[0]];
-                        let playerStr = arr[1] === 0 ? 'P1' : 'P2';
-                        let hexObj = grid[arr[2]] || { q: 0, r: 0 };
-                        let rules = unitRules[typeStr];
-                        let defaultHp = rules ? rules.maxHp : 5;
-                        if (typeStr === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
-                        let hpVal = arr.length > 3 ? arr[3] : defaultHp;
-                        return {
-                            id: 'unit_' + Math.random(),
-                            type: typeStr,
-                            player: playerStr,
-                            q: hexObj.q,
-                            r: hexObj.r,
-                            hp: hpVal,
-                            maxHp: defaultHp,
-                            moveRange: rules ? rules.moveRange : 2,
-                            attackRange: rules ? rules.attackRange : 1,
-                            damage: rules ? (rules.damage || 0) : 0,
-                            heal: rules ? (rules.heal || 0) : 0,
-                            moved: false,
-                            attacked: false
+                        gameParams = {
+                            mapId: mapIdStr,
+                            p1Race: r1Str,
+                            p2Race: r2Str,
+                            p1ColorKey: 'blue',
+                            p2ColorKey: 'red',
+                            sideSwap: false,
+                            pogNerfs: !!data.p
                         };
-                    });
 
-                    let bonusObj = {};
-                    if (data.k) {
-                        data.k.forEach(item => {
-                            let hexObj = grid[item[0]];
-                            if (hexObj) {
-                                let key = `${hexObj.q},${hexObj.r}`;
-                                bonusObj[key] = { owner: item[1] === 0 ? 'P1' : 'P2' };
-                            }
+                        parseMapGeom();
+                        grid = mapConfig.geomGrid;
+
+                        let loadedUnits = (data.u || []).map(arr => {
+                            let typeStr = TYPE_CODES[arr[0]];
+                            let playerStr = arr[1] === 0 ? 'P1' : 'P2';
+                            let hexObj = grid[arr[2]] || { q: 0, r: 0 };
+                            let rules = unitRules[typeStr];
+                            let defaultHp = rules ? rules.maxHp : 5;
+                            if (typeStr === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
+                            let hpVal = arr.length > 3 ? arr[3] : defaultHp;
+                            return {
+                                id: 'unit_' + Math.random(),
+                                type: typeStr,
+                                player: playerStr,
+                                q: hexObj.q,
+                                r: hexObj.r,
+                                hp: hpVal,
+                                maxHp: defaultHp,
+                                moveRange: rules ? rules.moveRange : 2,
+                                attackRange: rules ? rules.attackRange : 1,
+                                damage: rules ? (rules.damage || 0) : 0,
+                                heal: rules ? (rules.heal || 0) : 0,
+                                moved: false,
+                                attacked: false
+                            };
                         });
-                    }
 
-                    game = {
-                        turn: data.t === 1 ? 'P1' : 'P2',
-                        turnNumber: data.n || 1,
-                        wits: data.w ? { P1: data.w[0], P2: data.w[1] } : { P1: 5, P2: 8 },
-                        baseHp: data.b ? { P1: data.b[0], P2: data.b[1] } : { P1: 5, P2: 5 },
-                        units: loadedUnits,
-                        bonusSpaces: bonusObj,
-                        spawnsUsedThisTurn: [],
-                        pendingSpawnType: null
-                    };
-                } else if (data.m) {
-                    // Compact tuple format
-                    gameParams = {
-                        mapId: data.m,
-                        p1Race: data.r1,
-                        p2Race: data.r2,
-                        p1ColorKey: data.c1 || 'blue',
-                        p2ColorKey: data.c2 || 'red',
-                        sideSwap: false,
-                        pogNerfs: !!data.p
-                    };
+                        let bonusObj = {};
+                        if (data.k) {
+                            data.k.forEach(item => {
+                                let hexObj = grid[item[0]];
+                                if (hexObj) {
+                                    let key = `${hexObj.q},${hexObj.r}`;
+                                    bonusObj[key] = { owner: item[1] === 0 ? 'P1' : 'P2' };
+                                }
+                            });
+                        }
 
-                    parseMapGeom();
-                    grid = mapConfig.geomGrid;
-
-                    let loadedUnits = (data.u || []).map(arr => {
-                        let typeStr = typeof arr[0] === 'number' ? TYPE_CODES[arr[0]] : arr[0];
-                        let playerStr = arr[1] === 1 ? 'P1' : 'P2';
-                        let rules = unitRules[typeStr];
-                        let defaultHp = rules ? rules.maxHp : 5;
-                        if (typeStr === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
-                        let hpVal = arr.length > 4 ? arr[4] : defaultHp;
-                        return {
-                            id: 'unit_' + Math.random(),
-                            type: typeStr,
-                            player: playerStr,
-                            q: arr[2],
-                            r: arr[3],
-                            hp: hpVal,
-                            maxHp: defaultHp,
-                            moveRange: rules ? rules.moveRange : 2,
-                            attackRange: rules ? rules.attackRange : 1,
-                            damage: rules ? (rules.damage || 0) : 0,
-                            heal: rules ? (rules.heal || 0) : 0,
-                            moved: false,
-                            attacked: false
+                        game = {
+                            turn: data.t === 1 ? 'P1' : 'P2',
+                            turnNumber: data.n || 1,
+                            wits: data.w ? { P1: data.w[0], P2: data.w[1] } : { P1: 5, P2: 8 },
+                            baseHp: data.b ? { P1: data.b[0], P2: data.b[1] } : { P1: 5, P2: 5 },
+                            units: loadedUnits,
+                            bonusSpaces: bonusObj,
+                            spawnsUsedThisTurn: [],
+                            pendingSpawnType: null
                         };
-                    });
+                    } else if (data.m) {
+                        gameParams = {
+                            mapId: data.m,
+                            p1Race: data.r1,
+                            p2Race: data.r2,
+                            p1ColorKey: data.c1 || 'blue',
+                            p2ColorKey: data.c2 || 'red',
+                            sideSwap: false,
+                            pogNerfs: !!data.p
+                        };
 
-                    let bonusObj = {};
-                    if (data.k) {
-                        data.k.forEach(item => {
-                            let key = `${item[0]},${item[1]}`;
-                            bonusObj[key] = { owner: item[2] === 1 ? 'P1' : 'P2' };
+                        parseMapGeom();
+                        grid = mapConfig.geomGrid;
+
+                        let loadedUnits = (data.u || []).map(arr => {
+                            let typeStr = typeof arr[0] === 'number' ? TYPE_CODES[arr[0]] : arr[0];
+                            let playerStr = arr[1] === 1 ? 'P1' : 'P2';
+                            let rules = unitRules[typeStr];
+                            let defaultHp = rules ? rules.maxHp : 5;
+                            if (typeStr === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
+                            let hpVal = arr.length > 4 ? arr[4] : defaultHp;
+                            return {
+                                id: 'unit_' + Math.random(),
+                                type: typeStr,
+                                player: playerStr,
+                                q: arr[2],
+                                r: arr[3],
+                                hp: hpVal,
+                                maxHp: defaultHp,
+                                moveRange: rules ? rules.moveRange : 2,
+                                attackRange: rules ? rules.attackRange : 1,
+                                damage: rules ? (rules.damage || 0) : 0,
+                                heal: rules ? (rules.heal || 0) : 0,
+                                moved: false,
+                                attacked: false
+                            };
                         });
+
+                        let bonusObj = {};
+                        if (data.k) {
+                            data.k.forEach(item => {
+                                let key = `${item[0]},${item[1]}`;
+                                bonusObj[key] = { owner: item[2] === 1 ? 'P1' : 'P2' };
+                            });
+                        }
+
+                        game = {
+                            turn: data.t === 1 ? 'P1' : 'P2',
+                            turnNumber: data.n || 1,
+                            wits: data.w ? { P1: data.w[0], P2: data.w[1] } : { P1: 5, P2: 8 },
+                            baseHp: data.b ? { P1: data.b[0], P2: data.b[1] } : { P1: 5, P2: 5 },
+                            units: loadedUnits,
+                            bonusSpaces: bonusObj,
+                            spawnsUsedThisTurn: [],
+                            pendingSpawnType: null
+                        };
+                    } else {
+                        gameParams = data.gp;
+                        parseMapGeom();
+                        grid = mapConfig.geomGrid;
+
+                        game = {
+                            turn: data.turn || 'P1',
+                            turnNumber: data.turnNum || 1,
+                            wits: data.wits || { P1: 5, P2: 8 },
+                            baseHp: data.baseHp || { P1: 5, P2: 5 },
+                            units: (data.units || []).map(u => ({
+                                id: 'unit_' + Math.random(),
+                                type: u.t,
+                                player: u.p,
+                                q: u.q,
+                                r: u.r,
+                                hp: u.hp,
+                                maxHp: u.mHp || unitRules[u.t].maxHp,
+                                moveRange: unitRules[u.t].moveRange,
+                                attackRange: unitRules[u.t].attackRange,
+                                damage: unitRules[u.t].damage || 0,
+                                heal: unitRules[u.t].heal || 0,
+                                moved: false,
+                                attacked: false
+                            })),
+                            bonusSpaces: data.bonus || {},
+                            spawnsUsedThisTurn: [],
+                            pendingSpawnType: null
+                        };
                     }
-
-                    game = {
-                        turn: data.t === 1 ? 'P1' : 'P2',
-                        turnNumber: data.n || 1,
-                        wits: data.w ? { P1: data.w[0], P2: data.w[1] } : { P1: 5, P2: 8 },
-                        baseHp: data.b ? { P1: data.b[0], P2: data.b[1] } : { P1: 5, P2: 5 },
-                        units: loadedUnits,
-                        bonusSpaces: bonusObj,
-                        spawnsUsedThisTurn: [],
-                        pendingSpawnType: null
-                    };
-                } else {
-                    // Legacy verbose format
-                    gameParams = data.gp;
-                    parseMapGeom();
-                    grid = mapConfig.geomGrid;
-
-                    game = {
-                        turn: data.turn || 'P1',
-                        turnNumber: data.turnNum || 1,
-                        wits: data.wits || { P1: 5, P2: 8 },
-                        baseHp: data.baseHp || { P1: 5, P2: 5 },
-                        units: (data.units || []).map(u => ({
-                            id: 'unit_' + Math.random(),
-                            type: u.t,
-                            player: u.p,
-                            q: u.q,
-                            r: u.r,
-                            hp: u.hp,
-                            maxHp: u.mHp || unitRules[u.t].maxHp,
-                            moveRange: unitRules[u.t].moveRange,
-                            attackRange: unitRules[u.t].attackRange,
-                            damage: unitRules[u.t].damage || 0,
-                            heal: unitRules[u.t].heal || 0,
-                            moved: false,
-                            attacked: false
-                        })),
-                        bonusSpaces: data.bonus || {},
-                        spawnsUsedThisTurn: [],
-                        pendingSpawnType: null
-                    };
                 }
 
                 document.getElementById('lobby-screen').style.display = 'none';
