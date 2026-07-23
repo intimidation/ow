@@ -1017,7 +1017,10 @@
                     <span style="font-weight: 800; font-size: 11px; color: #f59e0b; letter-spacing: 1px; text-transform: uppercase;">🛠️ Customise Match</span>
                     <span style="font-size: 9px; color: var(--text-secondary);">(Tap hex to edit)</span>
                 </div>
-                <button id="exit-customise-btn" onclick="toggleCustomiseMode()" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.3);">Exit Customise ✕</button>
+                <div style="display: flex; gap: 4px;">
+                    <button id="share-puzzle-btn" onclick="sharePuzzleChallenge()" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(59,130,246,0.3); transition: all 0.15s ease;">🔗 Share Link</button>
+                    <button id="exit-customise-btn" onclick="toggleCustomiseMode()" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; border: none; border-radius: 6px; padding: 4px 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; box-shadow: 0 2px 6px rgba(239,68,68,0.3);">Exit ✕</button>
+                </div>
             </div>
 
             <!-- Wits Adjustment Bar -->
@@ -2131,12 +2134,126 @@
             });
         }
 
+        function sharePuzzleChallenge() {
+            triggerHaptic(20);
+            if (!currentMatchId || !game) return;
+
+            const puzzleData = {
+                gp: gameParams,
+                turn: game.turn,
+                turnNum: game.turnNumber,
+                wits: game.wits,
+                baseHp: game.baseHp,
+                units: game.units.map(u => ({
+                    t: u.type,
+                    p: u.player,
+                    q: u.q,
+                    r: u.r,
+                    hp: u.hp,
+                    mHp: u.maxHp
+                })),
+                bonus: game.bonusSpaces
+            };
+
+            try {
+                const jsonStr = JSON.stringify(puzzleData);
+                const encoded = btoa(encodeURIComponent(jsonStr));
+                const shareUrl = window.location.origin + window.location.pathname + '?puzzle=' + encoded;
+
+                const btn = document.getElementById('share-puzzle-btn');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                        if (btn) {
+                            btn.textContent = '✓ Copied Link!';
+                            btn.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+                            setTimeout(() => {
+                                btn.textContent = '🔗 Share Link';
+                                btn.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                            }, 2500);
+                        }
+                    }).catch(() => {
+                        prompt("Copy this puzzle link to share with others:", shareUrl);
+                    });
+                } else {
+                    prompt("Copy this puzzle link to share with others:", shareUrl);
+                }
+            } catch (e) {
+                console.error("Failed to generate puzzle link", e);
+                alert("Could not generate puzzle link.");
+            }
+        }
+
+        function loadPuzzleFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const puzzleEncoded = urlParams.get('puzzle');
+            if (!puzzleEncoded) return false;
+
+            try {
+                const jsonStr = decodeURIComponent(atob(puzzleEncoded));
+                const data = JSON.parse(jsonStr);
+
+                currentMatchId = 'puzzle_' + Date.now();
+                gameParams = data.gp;
+
+                document.getElementById('lobby-screen').style.display = 'none';
+                document.getElementById('app-container').style.display = 'flex';
+                resizeCanvasOnly();
+
+                parseMapGeom();
+                grid = mapConfig.geomGrid;
+                centerGrid();
+
+                game = {
+                    turn: data.turn || 'P1',
+                    turnNumber: data.turnNum || 1,
+                    wits: data.wits || { P1: 5, P2: 8 },
+                    baseHp: data.baseHp || { P1: 5, P2: 5 },
+                    units: (data.units || []).map(u => ({
+                        id: 'unit_' + Math.random(),
+                        type: u.t,
+                        player: u.p,
+                        q: u.q,
+                        r: u.r,
+                        hp: u.hp,
+                        maxHp: u.mHp || unitRules[u.t].maxHp,
+                        moveRange: unitRules[u.t].moveRange,
+                        attackRange: unitRules[u.t].attackRange,
+                        damage: unitRules[u.t].damage || 0,
+                        heal: unitRules[u.t].heal || 0,
+                        moved: false,
+                        attacked: false
+                    })),
+                    bonusSpaces: data.bonus || {},
+                    spawnsUsedThisTurn: [],
+                    pendingSpawnType: null
+                };
+
+                currentTurnStartSnapshot = createSnapshot();
+                globalHistory = [createSnapshot()];
+                redoGlobalHistory = [];
+                actionQueue = [];
+                redoQueue = [];
+
+                selectedUnit = null;
+                clearHighlights();
+                updateUI();
+                draw();
+                evaluateWin();
+                saveCurrentMatch();
+                return true;
+            } catch (e) {
+                console.error("Error loading puzzle from URL", e);
+                return false;
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             updateLobbyColors();
             updatePogModeUI();
             renderSavedMatches();
             selectRaceCard('p1', 'Scallywags');
             selectRaceCard('p2', 'Scallywags');
+            loadPuzzleFromURL();
         });
 
         function saveCurrentMatch() {
