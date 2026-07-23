@@ -2158,32 +2158,24 @@
             triggerHaptic(20);
             if (!currentMatchId || !game) return;
 
-            // Map list & Race list indexing for compact packing
             const MAP_KEYS = ['SweetTooth', 'SharkfoodIsland', 'Foundry', 'SkullDuggery', 'Glitch'];
             const RACE_KEYS = ['Scallywags', 'Feedback', 'Adorables', 'Veggienauts'];
             const TYPE_CODES = ['Runner', 'Soldier', 'Medic', 'Sniper', 'Heavy', 'Bombshell', 'Scrambler', 'Mobi', 'Bramble', 'BombshellSieged', 'BrambleSieged', 'Thorn'];
 
-            let mapIdx = MAP_KEYS.indexOf(gameParams.mapId);
-            if (mapIdx === -1) mapIdx = 0;
+            let mapIdx = MAP_KEYS.indexOf(gameParams.mapId); if (mapIdx === -1) mapIdx = 0;
             let r1Idx = RACE_KEYS.indexOf(gameParams.p1Race); if (r1Idx === -1) r1Idx = 0;
             let r2Idx = RACE_KEYS.indexOf(gameParams.p2Race); if (r2Idx === -1) r2Idx = 0;
 
-            // Build grid index lookup for 2-character hex placement
             let gridList = grid || (mapConfig ? mapConfig.geomGrid : []);
 
             let uPacked = game.units.map(u => {
                 let typeIdx = TYPE_CODES.indexOf(u.type); if (typeIdx === -1) typeIdx = 0;
                 let pIdx = u.player === 'P1' ? 0 : 1;
-                let hexIdx = gridList.findIndex(g => g.q === u.q && g.r === u.r);
-                if (hexIdx === -1) hexIdx = 0;
-
+                let hexIdx = gridList.findIndex(g => g.q === u.q && g.r === u.r); if (hexIdx === -1) hexIdx = 0;
                 let rules = unitRules[u.type];
                 let defaultHp = rules ? rules.maxHp : 5;
                 if (u.type === 'Mobi' && gameParams.pogNerfs) defaultHp = 1;
-                let isCustomHp = u.hp !== defaultHp;
-
-                // Packed unit representation: [typeIdx, pIdx, hexIdx, hp (optional)]
-                return isCustomHp ? [typeIdx, pIdx, hexIdx, u.hp] : [typeIdx, pIdx, hexIdx];
+                return u.hp !== defaultHp ? [typeIdx, pIdx, hexIdx, u.hp] : [typeIdx, pIdx, hexIdx];
             });
 
             let activeBonus = [];
@@ -2212,24 +2204,10 @@
             try {
                 const jsonStr = JSON.stringify(compactPuzzle);
                 const encoded = btoa(jsonStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-                const longUrl = window.location.origin + window.location.pathname + '?p=' + encoded;
+                const shareUrl = window.location.origin + window.location.pathname + '?p=' + encoded;
 
                 const btn = document.getElementById('share-puzzle-btn');
-                if (btn) btn.textContent = '⏳ Creating Short Link...';
-
-                // Try shortening URL via tinyurl API
-                fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`)
-                    .then(res => res.text())
-                    .then(shortUrl => {
-                        if (shortUrl && shortUrl.startsWith('http')) {
-                            copyTextToClipboard(shortUrl, btn);
-                        } else {
-                            copyTextToClipboard(longUrl, btn);
-                        }
-                    })
-                    .catch(() => {
-                        copyTextToClipboard(longUrl, btn);
-                    });
+                copyTextToClipboard(shareUrl, btn);
             } catch (e) {
                 console.error("Failed to generate puzzle link", e);
                 alert("Could not generate puzzle link.");
