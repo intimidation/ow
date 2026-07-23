@@ -1044,7 +1044,15 @@
                     </div>
                 </div>
 
-                <!-- Wits Adjustment Bar -->
+                <!-- Turn Selection & Wits Adjustment Bar -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
+                    <span style="font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase;">Active Turn:</span>
+                    <div style="display: flex; gap: 4px;">
+                        <button id="customise-turn-p1" onclick="setCustomiseTurn('P1')" style="padding: 3px 10px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid #3b82f6; background: rgba(59, 130, 246, 0.2); color: #fff; cursor: pointer;">🔵 P1 Turn</button>
+                        <button id="customise-turn-p2" onclick="setCustomiseTurn('P2')" style="padding: 3px 10px; font-size: 10px; font-weight: 800; border-radius: 6px; border: 1px solid var(--border-color); background: #1a1a22; color: var(--text-secondary); cursor: pointer;">🔴 P2 Turn</button>
+                    </div>
+                </div>
+
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);">
                     <div style="display: flex; align-items: center; gap: 4px;">
                         <span id="customise-p1-label" style="font-weight: 800; font-size: 11px; color: #3b82f6;">🔵 P1 Wits:</span>
@@ -1939,6 +1947,16 @@
             saveCurrentMatch();
         }
 
+        function setCustomiseTurn(turn) {
+            triggerHaptic(10);
+            if (!game) return;
+            game.turn = turn;
+            updateCustomiseUI();
+            updateUI();
+            draw();
+            saveCurrentMatch();
+        }
+
         function setCustomiseTeam(team) {
             triggerHaptic(10);
             customiseTeam = team;
@@ -1952,7 +1970,28 @@
         }
 
         function updateCustomiseUI() {
-            if (!isCustomizing) return;
+            if (!isCustomizing || !game) return;
+
+            const turnP1Btn = document.getElementById('customise-turn-p1');
+            const turnP2Btn = document.getElementById('customise-turn-p2');
+            if (turnP1Btn && turnP2Btn) {
+                if (game.turn === 'P1') {
+                    turnP1Btn.style.border = '1px solid #3b82f6';
+                    turnP1Btn.style.background = 'rgba(59, 130, 246, 0.35)';
+                    turnP1Btn.style.color = '#fff';
+                    turnP2Btn.style.border = '1px solid var(--border-color)';
+                    turnP2Btn.style.background = '#1a1a22';
+                    turnP2Btn.style.color = 'var(--text-secondary)';
+                } else {
+                    turnP2Btn.style.border = '1px solid #ef4444';
+                    turnP2Btn.style.background = 'rgba(239, 68, 68, 0.35)';
+                    turnP2Btn.style.color = '#fff';
+                    turnP1Btn.style.border = '1px solid var(--border-color)';
+                    turnP1Btn.style.background = '#1a1a22';
+                    turnP1Btn.style.color = 'var(--text-secondary)';
+                }
+            }
+
             const p1Btn = document.getElementById('customise-team-p1');
             const p2Btn = document.getElementById('customise-team-p2');
             if (p1Btn && p2Btn) {
@@ -3505,10 +3544,16 @@
             if (isCustomizing) {
                 if (grid.some(g => g.q === hex.q && g.r === hex.r)) {
                     let u = getUnitAt(hex.q, hex.r);
+                    let bonusKey = `${hex.q},${hex.r}`;
+                    let isBonusHex = mapConfig && mapConfig.parsedBonusSpaces && mapConfig.parsedBonusSpaces.some(b => b.q === hex.q && b.r === hex.r);
+
                     if (customiseTool === 'Delete') {
                         if (u) {
                             triggerHaptic(25);
                             game.units = game.units.filter(x => x !== u);
+                            if (isBonusHex && game.bonusSpaces && game.bonusSpaces[bonusKey]) {
+                                delete game.bonusSpaces[bonusKey];
+                            }
                             cleanUpOrphanedThorns();
                             updateUI();
                             draw();
@@ -3534,6 +3579,9 @@
                             if (u && u.type === actualType && u.player === customiseTeam) {
                                 // Tapping the same unit type for the same team deletes the unit
                                 game.units = game.units.filter(x => x !== u);
+                                if (isBonusHex && game.bonusSpaces && game.bonusSpaces[bonusKey]) {
+                                    delete game.bonusSpaces[bonusKey];
+                                }
                             } else {
                                 game.units = game.units.filter(x => !(x.q === hex.q && x.r === hex.r));
                                 let maxHp = rules.maxHp;
@@ -3557,6 +3605,12 @@
                                     newUnit.parentId = 'sandbox';
                                 }
                                 game.units.push(newUnit);
+
+                                // Claim/transfer bonus space ownership to the placed unit's team
+                                if (isBonusHex) {
+                                    if (!game.bonusSpaces) game.bonusSpaces = {};
+                                    game.bonusSpaces[bonusKey] = { owner: customiseTeam };
+                                }
                             }
                             cleanUpOrphanedThorns();
                             updateUI();
