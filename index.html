@@ -799,37 +799,55 @@
             }
 
             #control-panel {
-                width: 290px !important;
+                width: 320px !important;
                 height: 100% !important;
                 border-top: none !important;
                 border-left: 1px solid var(--border-color) !important;
                 display: flex;
                 flex-direction: column !important;
                 justify-content: flex-start !important;
-                gap: 5px !important;
-                overflow: hidden !important;
-                padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 10px) 12px !important;
+                gap: 8px !important;
+                overflow-y: auto !important;
+                padding: 12px 14px calc(env(safe-area-inset-bottom, 0px) + 12px) 14px !important;
             }
 
             #control-panel .shop-grid {
                 grid-template-columns: repeat(3, 1fr) !important;
-                gap: 5px !important;
+                gap: 8px !important;
             }
 
             #control-panel .shop-grid button.unit-btn {
-                padding: 6px 4px !important;
+                padding: 12px 6px !important;
+                font-size: 16px !important;
+                min-height: 48px !important;
+            }
+
+            #control-panel .shop-grid button.unit-btn span.cost {
                 font-size: 12px !important;
             }
 
             #control-panel .action-row {
                 grid-template-columns: repeat(2, 1fr) !important;
-                gap: 5px !important;
-                margin-top: 6px !important;
+                gap: 8px !important;
+                margin-top: 8px !important;
             }
 
             #control-panel .action-row button {
+                padding: 12px 6px !important;
+                font-size: 13px !important;
+                min-height: 44px !important;
+            }
+
+            #top-toolbar-row {
+                gap: 5px !important;
+                margin-bottom: 6px !important;
+            }
+
+            #top-toolbar-row button,
+            #top-toolbar-row label {
                 padding: 8px 4px !important;
                 font-size: 11px !important;
+                min-height: 36px !important;
             }
 
             #customise-panel {
@@ -837,9 +855,17 @@
                 border-bottom: none !important;
                 border-left: 1px solid var(--border-color) !important;
                 border-right: none !important;
-                width: 290px !important;
+                width: 320px !important;
                 height: 100% !important;
                 overflow-y: auto !important;
+                padding: 12px 14px !important;
+                gap: 12px !important;
+            }
+
+            #customise-panel .c-unit-btn {
+                padding: 10px 0 !important;
+                font-size: 14px !important;
+                min-height: 40px !important;
             }
         }
     </style>
