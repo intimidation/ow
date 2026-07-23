@@ -3705,14 +3705,17 @@
                         }
                         let rules = unitRules[actualType];
                         if (rules) {
-                            triggerHaptic(25);
                             if (u && u.type === actualType && u.player === customiseTeam) {
+                                triggerHaptic(25);
                                 // Tapping the same unit type for the same team deletes the unit
                                 game.units = game.units.filter(x => x !== u);
                                 if (isBonusHex && game.bonusSpaces && game.bonusSpaces[bonusKey]) {
                                     delete game.bonusSpaces[bonusKey];
                                 }
                             } else {
+                                // Do not allow placing units on obstacles, base tiles, or holes
+                                if (isObstacle(hex.q, hex.r)) return;
+                                triggerHaptic(25);
                                 game.units = game.units.filter(x => !(x.q === hex.q && x.r === hex.r));
                                 let maxHp = rules.maxHp;
                                 if (actualType === 'Mobi' && gameParams.pogNerfs) maxHp = 1;
