@@ -2063,9 +2063,13 @@
                 }
             }
 
+            const isPog = gameParams && gameParams.pogNerfs;
             const p1Btn = document.getElementById('customise-team-p1');
             const p2Btn = document.getElementById('customise-team-p2');
             if (p1Btn && p2Btn) {
+                p1Btn.textContent = `🔵 P1 (${getRaceDisplayName(gameParams.p1Race, isPog)})`;
+                p2Btn.textContent = `🔴 P2 (${getRaceDisplayName(gameParams.p2Race, isPog)})`;
+
                 if (customiseTeam === 'P1') {
                     p1Btn.style.border = '1px solid #3b82f6';
                     p1Btn.style.background = 'rgba(59, 130, 246, 0.25)';
@@ -2266,6 +2270,29 @@
                     });
                 }
             });
+
+            if (isCustomizing) {
+                updateCustomiseUI();
+            }
+            if (currentMatchId && game) {
+                updateUI();
+            }
+        }
+
+        function getRaceDisplayName(raceKey, isPog = false) {
+            const pogNames = {
+                Scallywags: 'Elspar',
+                Feedback: 'Blix',
+                Adorables: 'Worp',
+                Veggienauts: 'Rynn-Ceph'
+            };
+            const standardNames = {
+                Scallywags: 'Scallywags',
+                Feedback: 'Feedback',
+                Adorables: 'Adorables',
+                Veggienauts: 'Veggienauts'
+            };
+            return isPog ? (pogNames[raceKey] || raceKey) : (standardNames[raceKey] || raceKey);
         }
 
         function sharePuzzleChallenge() {
@@ -4102,10 +4129,11 @@
             ban.style.backgroundColor = game.turn === 'P1' ? p1C.banner : p2C.banner;
 
             // Update landscape side stats
+            const isPog = gameParams && gameParams.pogNerfs;
             const sideP1Name = document.getElementById('side-p1-name');
-            if (sideP1Name) sideP1Name.textContent = `${p1C.emoji} P1 (${gameParams.p1Race})`;
+            if (sideP1Name) sideP1Name.textContent = `${p1C.emoji} P1 (${getRaceDisplayName(gameParams.p1Race, isPog)})`;
             const sideP2Name = document.getElementById('side-p2-name');
-            if (sideP2Name) sideP2Name.textContent = `${p2C.emoji} P2 (${gameParams.p2Race})`;
+            if (sideP2Name) sideP2Name.textContent = `${p2C.emoji} P2 (${getRaceDisplayName(gameParams.p2Race, isPog)})`;
 
             const sideP1Wits = document.getElementById('side-p1-wits');
             if (sideP1Wits) sideP1Wits.textContent = game.wits.P1;
